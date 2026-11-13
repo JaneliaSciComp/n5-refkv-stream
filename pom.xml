@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.refkv</groupId>
+  <artifactId>n5-refkv-stream</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>N5 refkv.stream codec</name>
+  <description>An N5 block codec for the refkv.stream convention: H.264, HEVC, VP9 and AV1 video in Zarr arrays, decoded with FFmpeg</description>
+  <url>https://github.com/JaneliaSciComp/n5-refkv-stream</url>
+
+  <licenses>
+    <license>
+      <name>BSD-3-Clause</name>
+      <url>https://opensource.org/license/bsd-3-clause</url>
+      <distribution>repo</distribution>
+    </license>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <n5.version>4.0.2</n5.version>
+    <ffmpeg.version>8.1.2-1.5.14</ffmpeg.version>
+    <!-- only the tests read Zarr: 2.0.2 is the release; a build with the rectilinear chunk grid (saalfeldlab/n5-zarr#104) reads
+         the arrays of long videos too: mvn -Dn5-zarr.version=2.0.2-rectilinear.1 -->
+    <n5-zarr.version>2.0.2</n5-zarr.version>
+    <refkv-javacpp.version>0.1.0-SNAPSHOT</refkv-javacpp.version>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>scijava.public</id>
+      <url>https://maven.scijava.org/content/groups/public</url>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.janelia.saalfeldlab</groupId>
+      <artifactId>n5</artifactId>
+      <version>${n5.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>ffmpeg</artifactId>
+      <version>${ffmpeg.version}</version>
+    </dependency>
+    <!-- an application brings the FFmpeg natives of its own platform: ffmpeg-platform, or the classifier it runs on.
+         The tests run on this platform's -->
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>ffmpeg</artifactId>
+      <version>${ffmpeg.version}</version>
+      <classifier>${ffmpeg.native}</classifier>
+      <scope>test</scope>
+    </dependency>
+    <!-- the tests zarrify MP4 files with refkv, and read the arrays through n5-zarr -->
+    <dependency>
+      <groupId>org.refkv</groupId>
+      <artifactId>refkv-javacpp</artifactId>
+      <version>${refkv-javacpp.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.janelia.saalfeldlab</groupId>
+      <artifactId>n5-zarr</artifactId>
+      <version>${n5-zarr.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- n5-blosc's jblosc brings JNA 4.2.2, whose macOS native stub is x86 only and cannot start on Apple Silicon -->
+    <dependency>
+      <groupId>net.java.dev.jna</groupId>
+      <artifactId>jna</artifactId>
+      <version>5.17.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.11.4</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <profile>
+      <id>ffmpeg-macosx-arm64</id>
+      <activation><os><family>mac</family><arch>aarch64</arch></os></activation>
+      <properties><ffmpeg.native>macosx-arm64</ffmpeg.native></properties>
+    </profile>
+    <profile>
+      <id>ffmpeg-macosx-x86_64</id>
+      <activation><os><family>mac</family><arch>x86_64</arch></os></activation>
+      <properties><ffmpeg.native>macosx-x86_64</ffmpeg.native></properties>
+    </profile>
+    <profile>
+      <id>ffmpeg-windows-x86_64</id>
+      <activation><os><family>windows</family></os></activation>
+      <properties><ffmpeg.native>windows-x86_64</ffmpeg.native></properties>
+    </profile>
+    <profile>
+      <id>ffmpeg-linux-x86_64</id>
+      <activation><os><family>unix</family><name>Linux</name></os></activation>
+      <properties><ffmpeg.native>linux-x86_64</ffmpeg.native></properties>
+    </profile>
+  </profiles>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
